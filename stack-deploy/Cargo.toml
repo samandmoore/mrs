@@ -1,4 +1,5 @@
 [package]
+edition.workspace = true
 name = "stack-deploy"
 version = "0.0.1"
 
