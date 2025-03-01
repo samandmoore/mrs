@@ -9,6 +9,23 @@ pub struct ConditionName(String);
 #[derive(serde::Serialize)]
 pub struct LogicalName(String);
 
+pub fn equals_bool<T: ToExp<Output = ExpBool>>(left: T, right: T) -> ExpBool {
+    ExpBool::Equals(ExpPair::Bool {
+        left: Box::new(left.into_exp()),
+        right: Box::new(right.into_exp()),
+    })
+}
+
+pub fn equals_string<A: ToExp<Output = ExpString>, B: ToExp<Output = ExpString>>(
+    left: A,
+    right: B,
+) -> ExpBool {
+    ExpBool::Equals(ExpPair::String {
+        left: Box::new(left.into_exp()),
+        right: Box::new(right.into_exp()),
+    })
+}
+
 pub trait CfValue {
     fn to_cf_value(&self) -> serde_json::Value;
 }
@@ -112,22 +129,30 @@ impl ExpString {
 pub trait ToExp {
     type Output;
 
-    fn to_exp(&self) -> Self::Output;
+    fn into_exp(self) -> Self::Output;
 }
 
-impl ToExp for str {
+impl ToExp for &str {
     type Output = ExpString;
 
-    fn to_exp(&self) -> Self::Output {
+    fn into_exp(self) -> Self::Output {
         ExpString::Literal(String::from(self))
+    }
+}
+
+impl ToExp for ExpString {
+    type Output = ExpString;
+
+    fn into_exp(self) -> Self::Output {
+        self
     }
 }
 
 impl ToExp for bool {
     type Output = ExpBool;
 
-    fn to_exp(&self) -> Self::Output {
-        ExpBool::Literal(*self)
+    fn into_exp(self) -> Self::Output {
+        ExpBool::Literal(self)
     }
 }
 
@@ -148,7 +173,7 @@ impl CfValue for ExpString {
     /// # use serde_json::json;
     /// assert_eq!(
     ///   json!({"Fn::Base64":"some-literal"}),
-    ///   "some-literal".to_exp().base64().to_cf_value()
+    ///   "some-literal".into_exp().base64().to_cf_value()
     /// )
     /// ```
     ///
@@ -199,7 +224,7 @@ impl CfValue for ExpString {
     /// # use serde_json::json;
     /// assert_eq!(
     ///   json!{"some-literal"},
-    ///   "some-literal".to_exp().to_cf_value()
+    ///   "some-literal".into_exp().to_cf_value()
     /// )
     /// ```
     ///
@@ -214,7 +239,7 @@ impl CfValue for ExpString {
     ///     delimiter: String::from(","),
     ///     values: vec![
     ///       "some-logical-name".to_logical_name().to_ref(),
-    ///       "some-literal".to_exp()
+    ///       "some-literal".into_exp()
     ///     ]
     ///   }.to_cf_value()
     /// )
@@ -316,22 +341,18 @@ impl CfValue for ExpBool {
     /// # use serde_json::json;
     ///
     /// assert_eq!(
-    ///   json!({"Fn::Equals":[{"Ref":"resource-a"},{"Ref":"resource-b"}]}),
-    ///   ExpBool::Equals(
-    ///     ExpPair::String {
-    ///       left: Box::new("resource-a".to_logical_name().to_ref()),
-    ///       right: Box::new("resource-b".to_logical_name().to_ref()),
-    ///     }
+    ///   json!({"Fn::Equals":[{"Ref":"resource-a"},"some-literal"]}),
+    ///   equals_string(
+    ///     "resource-a".to_logical_name().to_ref(),
+    ///     "some-literal"
     ///   ).to_cf_value()
     /// );
     ///
     /// assert_eq!(
     ///   json!({"Fn::Equals":[true,false]}),
-    ///   ExpBool::Equals(
-    ///     ExpPair::Bool {
-    ///       left: Box::new(true.to_exp()),
-    ///       right: Box::new(false.to_exp())
-    ///     }
+    ///   equals_bool(
+    ///       true,
+    ///       false
     ///   ).to_cf_value()
     /// )
     /// ```
@@ -351,3 +372,39 @@ impl CfValue for ExpBool {
         }
     }
 }
+
+enum Service {
+    EC2,
+    ECS,
+}
+
+struct ServiceResourceType(String);
+
+struct ResourceType {
+    service: Service,
+    service_resource_type: ServiceResourceType,
+}
+
+struct Resource {
+    r#type: ResourceType,
+    logical_name: LogicalName,
+    properties: serde_json::Value,
+}
+
+fn resource(name: &str) -> Resource {
+}
+
+struct SecurityGroup {
+    description: ExpString,
+    source_group_id: Option<ExpString>,
+    target_group_id: Option<ExpString>,
+}
+
+const SECURITY_GROUP: Resource = resource(
+    "SecurityGroupA",
+    SecurityGroup {
+        description: "Secuirty group id A".into_exp(),
+        source_group_id: None,
+        target_group_id: None,
+    },
+);
