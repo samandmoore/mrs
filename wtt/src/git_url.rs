@@ -22,7 +22,8 @@ impl GitUrl {
         // Extract the path portion after the last colon or the last ://
         let path = if url.contains("://") {
             // This is a URL with protocol (https://, ssh://, etc.)
-            // Extract everything after the protocol and host
+            // Extract everything after the protocol and host (including port if present)
+            // For example: ssh://git@github.com:22/user/repo.git -> user/repo.git
             if let Some(slash_after_host) = url.find("://").and_then(|pos| {
                 url[pos + 3..]
                     .find('/')
@@ -35,6 +36,8 @@ impl GitUrl {
             }
         } else if let Some(colon_pos) = url.rfind(':') {
             // This is SSH format without protocol: git@github.com:user/repo.git
+            // Note: This branch only handles URLs WITHOUT ://, so port numbers
+            // in the format host:port are not a concern here (they would have ://)
             &url[colon_pos + 1..]
         } else {
             // No clear separator, use the whole URL
