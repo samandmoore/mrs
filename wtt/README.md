@@ -45,11 +45,11 @@ worktree_dir = "/path/to/worktrees"
 Create bare clone and prepare worktree directory.
 
 ```sh
-wtt setup <REPO> <URL>
+wtt setup <URL> [--repo <REPO>]
 ```
 
-- `<REPO>` - Local name for the repository
 - `<URL>` - Git remote URL to clone
+- `--repo <REPO>` - Optional local name for the repository (defaults to name extracted from URL)
 - Clones bare repo to `~/.local/share/wtt/bare/<repo>.git`
 - Creates empty `~/devel/<repo>/` directory
 
