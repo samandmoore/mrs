@@ -8,17 +8,17 @@ impl GitUrl {
     }
 
     /// Extract repository name from a Git URL
-    /// 
+    ///
     /// Handles various Git URL formats:
     /// - SSH: git@github.com:user/repo.git -> repo
     /// - HTTPS: https://github.com/user/repo.git -> repo
     /// - SSH with protocol: ssh://git@github.com/user/repo.git -> repo
-    /// 
+    ///
     /// Returns the repository name without the .git extension if present
     #[must_use]
     pub fn extract_repo_name(&self) -> String {
         let url = self.0.as_str();
-        
+
         // First, extract the path portion of the URL
         let path = if let Some(colon_pos) = url.rfind(':') {
             // SSH format: git@github.com:user/repo.git
@@ -43,13 +43,15 @@ impl GitUrl {
                 url
             }
         };
-        
+
         // Now extract just the last component (repo name)
         let repo_with_maybe_git = path.rsplit('/').next().unwrap_or(path);
-        
+
         // Remove .git suffix if present
-        let name = repo_with_maybe_git.strip_suffix(".git").unwrap_or(repo_with_maybe_git);
-        
+        let name = repo_with_maybe_git
+            .strip_suffix(".git")
+            .unwrap_or(repo_with_maybe_git);
+
         name.to_string()
     }
 }
