@@ -1,3 +1,5 @@
+use crate::{RepoName, RepoNameError};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GitUrl(String);
 
@@ -15,8 +17,7 @@ impl GitUrl {
     /// - SSH with protocol: ssh://git@github.com/user/repo.git -> repo
     ///
     /// Returns the repository name without the .git extension if present
-    #[must_use]
-    pub fn extract_repo_name(&self) -> String {
+    pub fn extract_repo_name(&self) -> Result<RepoName, RepoNameError> {
         let url = self.0.as_str();
 
         // Extract the path portion after the last colon or the last ://
@@ -52,7 +53,7 @@ impl GitUrl {
             .strip_suffix(".git")
             .unwrap_or(repo_with_maybe_git);
 
-        name.to_string()
+        name.parse::<RepoName>()
     }
 }
 
@@ -104,48 +105,48 @@ mod tests {
     #[test]
     fn test_extract_repo_name_ssh_with_git_suffix() {
         let url: GitUrl = "git@github.com:user/repo.git".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 
     #[test]
     fn test_extract_repo_name_ssh_without_git_suffix() {
         let url: GitUrl = "git@github.com:user/repo".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 
     #[test]
     fn test_extract_repo_name_https_with_git_suffix() {
         let url: GitUrl = "https://github.com/user/repo.git".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 
     #[test]
     fn test_extract_repo_name_https_without_git_suffix() {
         let url: GitUrl = "https://github.com/user/repo".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 
     #[test]
     fn test_extract_repo_name_ssh_protocol_with_git_suffix() {
         let url: GitUrl = "ssh://git@github.com/user/repo.git".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 
     #[test]
     fn test_extract_repo_name_gitlab() {
         let url: GitUrl = "git@gitlab.com:user/repo.git".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 
     #[test]
     fn test_extract_repo_name_nested_path() {
         let url: GitUrl = "git@github.com:org/team/repo.git".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 
     #[test]
     fn test_extract_repo_name_ssh_with_port() {
         let url: GitUrl = "ssh://git@github.com:22/user/repo.git".parse().unwrap();
-        assert_eq!(url.extract_repo_name(), "repo");
+        assert_eq!(url.extract_repo_name().unwrap().as_str(), "repo");
     }
 }

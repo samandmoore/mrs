@@ -16,8 +16,8 @@ impl Setup {
         let repo = if let Some(repo_name) = self.repo {
             repo_name
         } else {
-            // Extract repo name from URL and parse it as a RepoName
-            self.url.extract_repo_name().parse::<RepoName>()?
+            // Extract repo name from URL (already returns RepoName)
+            self.url.extract_repo_name()?
         };
 
         let bare_path = config.bare_repo_path(&repo);
