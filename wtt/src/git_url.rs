@@ -19,29 +19,26 @@ impl GitUrl {
     pub fn extract_repo_name(&self) -> String {
         let url = self.0.as_str();
 
-        // First, extract the path portion of the URL
-        let path = if let Some(colon_pos) = url.rfind(':') {
-            // SSH format: git@github.com:user/repo.git
-            // Check if this is actually a port number (has // before it)
-            if url[..colon_pos].contains("//") {
-                // This is ssh://git@github.com/user/repo.git format
-                // Find the path after the last ://
-                if let Some(double_slash_pos) = url.rfind("://") {
-                    &url[double_slash_pos + 3..]
-                } else {
-                    url
-                }
+        // Extract the path portion after the last colon or the last ://
+        let path = if url.contains("://") {
+            // This is a URL with protocol (https://, ssh://, etc.)
+            // Extract everything after the protocol and host
+            if let Some(slash_after_host) = url.find("://").and_then(|pos| {
+                url[pos + 3..]
+                    .find('/')
+                    .map(|slash_pos| pos + 3 + slash_pos)
+            }) {
+                &url[slash_after_host + 1..]
             } else {
-                // This is git@github.com:user/repo.git format
-                &url[colon_pos + 1..]
-            }
-        } else {
-            // HTTPS or other format - find path after ://
-            if let Some(double_slash_pos) = url.rfind("://") {
-                &url[double_slash_pos + 3..]
-            } else {
+                // No path after host, just return the whole thing
                 url
             }
+        } else if let Some(colon_pos) = url.rfind(':') {
+            // This is SSH format without protocol: git@github.com:user/repo.git
+            &url[colon_pos + 1..]
+        } else {
+            // No clear separator, use the whole URL
+            url
         };
 
         // Now extract just the last component (repo name)
@@ -140,6 +137,12 @@ mod tests {
     #[test]
     fn test_extract_repo_name_nested_path() {
         let url: GitUrl = "git@github.com:org/team/repo.git".parse().unwrap();
+        assert_eq!(url.extract_repo_name(), "repo");
+    }
+
+    #[test]
+    fn test_extract_repo_name_ssh_with_port() {
+        let url: GitUrl = "ssh://git@github.com:22/user/repo.git".parse().unwrap();
         assert_eq!(url.extract_repo_name(), "repo");
     }
 }
