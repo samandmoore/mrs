@@ -1,6 +1,9 @@
-//! Git branch name type with validation.
+//! Git branch name type with validation and command builder.
 
 use std::borrow::Cow;
+use std::path::Path;
+
+use crate::CommandError;
 
 /// A validated git branch name.
 ///
@@ -393,5 +396,126 @@ mod tests {
         let branch: Branch = "main".parse().unwrap();
         let os_str: &OsStr = branch.as_ref();
         assert_eq!(os_str, "main");
+    }
+}
+
+/// Create a new `git branch` command builder.
+#[must_use]
+pub fn new() -> BranchCommand<'static> {
+    BranchCommand::new()
+}
+
+/// Builder for `git branch` command.
+///
+/// See `git branch --help` for full documentation.
+#[derive(Debug)]
+pub struct BranchCommand<'a> {
+    repo_path: Option<&'a Path>,
+    delete_force: bool,
+    quiet: bool,
+    list: bool,
+    format: Option<&'a str>,
+    branch: Option<&'a str>,
+}
+
+impl<'a> BranchCommand<'a> {
+    #[must_use]
+    fn new() -> Self {
+        Self {
+            repo_path: None,
+            delete_force: false,
+            quiet: false,
+            list: false,
+            format: None,
+            branch: None,
+        }
+    }
+
+    /// Set the repository path (`-C <path>`).
+    #[must_use]
+    pub fn repo_path(mut self, path: &'a Path) -> Self {
+        self.repo_path = Some(path);
+        self
+    }
+
+    crate::flag_methods! {
+        /// Force delete a branch (even if not fully merged).
+        ///
+        /// Corresponds to `-D`.
+        pub fn delete_force / delete_force_if, delete_force, "Conditionally force delete a branch."
+    }
+
+    crate::flag_methods! {
+        /// Suppress informational messages.
+        ///
+        /// Corresponds to `--quiet`.
+        pub fn quiet / quiet_if, quiet, "Conditionally suppress informational messages."
+    }
+
+    crate::flag_methods! {
+        /// List branches.
+        ///
+        /// Corresponds to `--list`.
+        pub fn list / list_if, list, "Conditionally list branches."
+    }
+
+    /// Set the output format.
+    ///
+    /// Corresponds to `--format <fmt>`.
+    #[must_use]
+    pub fn format(mut self, format: &'a str) -> Self {
+        self.format = Some(format);
+        self
+    }
+
+    /// Set the branch name (for delete or create operations).
+    #[must_use]
+    pub fn branch(mut self, branch: &'a str) -> Self {
+        self.branch = Some(branch);
+        self
+    }
+
+    /// Execute the command and return the exit status.
+    pub fn status(self) -> Result<(), CommandError> {
+        self.build().status()
+    }
+
+    /// Capture stdout from this command.
+    #[must_use]
+    pub fn stdout(self) -> cmd_proc::Capture {
+        self.build().stdout()
+    }
+
+    fn build(self) -> cmd_proc::Command {
+        crate::base_command(self.repo_path)
+            .argument("branch")
+            .optional_argument(self.delete_force.then_some("-D"))
+            .optional_argument(self.quiet.then_some("--quiet"))
+            .optional_argument(self.list.then_some("--list"))
+            .optional_option("--format", self.format)
+            .optional_argument(self.branch)
+    }
+}
+
+impl Default for BranchCommand<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(feature = "test-utils")]
+impl BranchCommand<'_> {
+    /// Compare the built command with another command using debug representation.
+    pub fn test_eq(&self, other: &cmd_proc::Command) {
+        let command = Self {
+            repo_path: self.repo_path,
+            delete_force: self.delete_force,
+            quiet: self.quiet,
+            list: self.list,
+            format: self.format,
+            branch: self.branch,
+        }
+        .build();
+        command.test_eq(other);
     }
 }

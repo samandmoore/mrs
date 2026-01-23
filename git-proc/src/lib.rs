@@ -42,12 +42,15 @@ macro_rules! flag_methods {
 
 pub mod add;
 pub mod branch;
+pub mod checkout;
 pub mod clone;
 pub mod commit;
 pub mod config;
 pub mod fetch;
 pub mod init;
 pub mod ls_remote;
+pub mod merge;
+pub mod merge_base;
 pub mod push;
 pub mod remote;
 pub mod rev_list;
@@ -55,6 +58,8 @@ pub mod rev_parse;
 pub mod show;
 pub mod show_ref;
 pub mod status;
+pub mod symbolic_ref;
+pub mod update_ref;
 pub mod url;
 pub mod worktree;
 
