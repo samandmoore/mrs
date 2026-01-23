@@ -9,6 +9,12 @@ pub fn get_url(name: &RemoteName) -> Remote<'_> {
     Remote::get_url(name)
 }
 
+/// Create a `git remote` list command builder.
+#[must_use]
+pub fn list() -> Remote<'static> {
+    Remote::list()
+}
+
 /// Builder for `git remote` command.
 ///
 /// See `git remote --help` for full documentation.
@@ -21,6 +27,7 @@ pub struct Remote<'a> {
 #[derive(Debug)]
 enum RemoteSubcommand<'a> {
     GetUrl { name: &'a RemoteName },
+    List { verbose: bool },
 }
 
 impl<'a> Remote<'a> {
@@ -30,6 +37,34 @@ impl<'a> Remote<'a> {
             repo_path: None,
             subcommand: RemoteSubcommand::GetUrl { name },
         }
+    }
+
+    #[must_use]
+    fn list() -> Remote<'static> {
+        Remote {
+            repo_path: None,
+            subcommand: RemoteSubcommand::List { verbose: false },
+        }
+    }
+
+    /// Show more information about remotes (only applies to list).
+    ///
+    /// Corresponds to `--verbose`.
+    #[must_use]
+    pub fn verbose(mut self) -> Self {
+        if let RemoteSubcommand::List { ref mut verbose } = self.subcommand {
+            *verbose = true;
+        }
+        self
+    }
+
+    /// Conditionally show more information about remotes.
+    #[must_use]
+    pub fn verbose_if(mut self, value: bool) -> Self {
+        if let RemoteSubcommand::List { ref mut verbose } = self.subcommand {
+            *verbose = value;
+        }
+        self
     }
 
     /// Set the repository path (`-C <path>`).
@@ -53,12 +88,14 @@ impl<'a> Remote<'a> {
     }
 
     fn build(self) -> cmd_proc::Command {
-        let RemoteSubcommand::GetUrl { name } = self.subcommand;
+        let cmd = crate::base_command(self.repo_path).argument("remote");
 
-        crate::base_command(self.repo_path)
-            .argument("remote")
-            .argument("get-url")
-            .argument(name)
+        match self.subcommand {
+            RemoteSubcommand::GetUrl { name } => cmd.argument("get-url").argument(name),
+            RemoteSubcommand::List { verbose } => {
+                cmd.optional_argument(verbose.then_some("--verbose"))
+            }
+        }
     }
 }
 
@@ -70,6 +107,7 @@ impl Remote<'_> {
             repo_path: self.repo_path,
             subcommand: match &self.subcommand {
                 RemoteSubcommand::GetUrl { name } => RemoteSubcommand::GetUrl { name },
+                RemoteSubcommand::List { verbose } => RemoteSubcommand::List { verbose: *verbose },
             },
         }
         .build();
