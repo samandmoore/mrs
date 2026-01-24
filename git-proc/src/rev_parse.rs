@@ -16,6 +16,8 @@ pub struct RevParse<'a> {
     repo_path: Option<&'a Path>,
     abbrev_ref: bool,
     symbolic_full_name: bool,
+    quiet: bool,
+    git_path: Option<&'a str>,
     rev: Option<&'a str>,
 }
 
@@ -26,6 +28,8 @@ impl<'a> RevParse<'a> {
             repo_path: None,
             abbrev_ref: false,
             symbolic_full_name: false,
+            quiet: false,
+            git_path: None,
             rev: None,
         }
     }
@@ -49,6 +53,34 @@ impl<'a> RevParse<'a> {
         ///
         /// Corresponds to `--symbolic-full-name`.
         pub fn symbolic_full_name / symbolic_full_name_if, symbolic_full_name, "Conditionally output full symbolic ref name."
+    }
+
+    crate::flag_methods! {
+        /// Suppress errors for non-existent refs.
+        ///
+        /// Corresponds to `--quiet`.
+        pub fn quiet / quiet_if, quiet, "Conditionally suppress errors for non-existent refs."
+    }
+
+    /// Resolve `$GIT_DIR/<path>` to a filesystem path.
+    ///
+    /// This resolves a path relative to the git directory, taking into account
+    /// git environment variables like `$GIT_OBJECT_DIRECTORY`, `$GIT_INDEX_FILE`, etc.
+    ///
+    /// This is different from `-C` (repo_path):
+    /// - `-C <path>`: Changes to a different working directory before running git
+    /// - `--git-path <path>`: Resolves a path within the git repository's internal structure
+    ///
+    /// Example: `--git-path objects/abc` might return `/foo/bar/abc` if
+    /// `$GIT_OBJECT_DIRECTORY` is set to `/foo/bar`.
+    ///
+    /// Corresponds to `--git-path <path>`.
+    ///
+    /// Note: This takes a string path relative to GIT_DIR, not a filesystem Path.
+    #[must_use]
+    pub fn git_path(mut self, path: &'a str) -> Self {
+        self.git_path = Some(path);
+        self
     }
 
     /// Set the revision to parse (e.g., `HEAD`, `@{u}`).
@@ -82,8 +114,10 @@ impl crate::Build for RevParse<'_> {
     fn build(self) -> cmd_proc::Command {
         crate::base_command(self.repo_path)
             .argument("rev-parse")
+            .optional_argument(self.quiet.then_some("--quiet"))
             .optional_argument(self.abbrev_ref.then_some("--abbrev-ref"))
             .optional_argument(self.symbolic_full_name.then_some("--symbolic-full-name"))
+            .optional_option("--git-path", self.git_path)
             .optional_argument(self.rev)
     }
 }
@@ -98,6 +132,8 @@ impl RevParse<'_> {
             repo_path: self.repo_path,
             abbrev_ref: self.abbrev_ref,
             symbolic_full_name: self.symbolic_full_name,
+            quiet: self.quiet,
+            git_path: self.git_path,
             rev: self.rev,
         });
         command.test_eq(other);
