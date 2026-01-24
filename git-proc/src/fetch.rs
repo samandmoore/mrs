@@ -79,7 +79,7 @@ impl<'a> Fetch<'a> {
 
     /// Execute the command and return the exit status.
     pub fn status(self) -> Result<(), CommandError> {
-        self.build().status()
+        crate::Build::build(self).status()
     }
 
     /// Spawn the command for long-running operations.
@@ -87,9 +87,17 @@ impl<'a> Fetch<'a> {
     /// Returns a spawned process that can be run and waited on.
     #[must_use]
     pub fn spawn(self) -> cmd_proc::Spawn {
-        self.build().spawn()
+        crate::Build::build(self).spawn()
     }
+}
 
+impl Default for Fetch<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl crate::Build for Fetch<'_> {
     fn build(self) -> cmd_proc::Command {
         crate::base_command(self.repo_path)
             .argument("fetch")
@@ -101,25 +109,18 @@ impl<'a> Fetch<'a> {
     }
 }
 
-impl Default for Fetch<'_> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(feature = "test-utils")]
 impl Fetch<'_> {
     /// Compare the built command with another command using debug representation.
     pub fn test_eq(&self, other: &cmd_proc::Command) {
-        let command = Self {
+        let command = crate::Build::build(Self {
             repo_path: self.repo_path,
             all: self.all,
             prune: self.prune,
             quiet: self.quiet,
             progress: self.progress,
             remote: self.remote,
-        }
-        .build();
+        });
         command.test_eq(other);
     }
 }

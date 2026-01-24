@@ -81,16 +81,24 @@ impl<'a> RevParse<'a> {
     /// Capture stdout from this command.
     #[must_use]
     pub fn stdout(self) -> cmd_proc::Capture {
-        self.build().stdout()
+        crate::Build::build(self).stdout()
     }
 
     /// Execute and return full output regardless of exit status.
     ///
     /// Use this when you need to inspect stderr on failure.
     pub fn output(self) -> Result<cmd_proc::Output, CommandError> {
-        self.build().output()
+        crate::Build::build(self).output()
     }
+}
 
+impl Default for RevParse<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl crate::Build for RevParse<'_> {
     fn build(self) -> cmd_proc::Command {
         crate::base_command(self.repo_path)
             .argument("rev-parse")
@@ -102,28 +110,20 @@ impl<'a> RevParse<'a> {
     }
 }
 
-impl Default for RevParse<'_> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(feature = "test-utils")]
 impl RevParse<'_> {
     /// Compare the built command with another command using debug representation.
     ///
     /// This is useful for testing command construction without executing.
     pub fn test_eq(&self, other: &cmd_proc::Command) {
-        // Clone self to build without consuming
-        let command = Self {
+        let command = crate::Build::build(Self {
             repo_path: self.repo_path,
             abbrev_ref: self.abbrev_ref,
             symbolic_full_name: self.symbolic_full_name,
             quiet: self.quiet,
             git_path: self.git_path,
             rev: self.rev,
-        }
-        .build();
+        });
         command.test_eq(other);
     }
 }
