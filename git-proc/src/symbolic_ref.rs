@@ -52,6 +52,14 @@ impl<'a> SymbolicRef<'a> {
     }
 
     /// Set the symbolic ref name to read.
+    ///
+    /// Common symbolic refs include:
+    /// - `HEAD`: Points to the current branch
+    /// - `ORIG_HEAD`: Previous value of HEAD
+    /// - `FETCH_HEAD`: Last branch fetched
+    /// - `MERGE_HEAD`: Commit being merged
+    ///
+    /// Full ref names like `refs/heads/main` can also be used.
     #[must_use]
     pub fn name(mut self, name: &'a str) -> Self {
         self.name = Some(name);

@@ -45,6 +45,8 @@ impl<'a> MergeBase<'a> {
     }
 
     /// Set the first commit.
+    ///
+    /// Accepts any commitish: commit SHA, branch name, tag name, HEAD, etc.
     #[must_use]
     pub fn commit1(mut self, commit: &'a str) -> Self {
         self.commit1 = Some(commit);
@@ -52,6 +54,8 @@ impl<'a> MergeBase<'a> {
     }
 
     /// Set the second commit.
+    ///
+    /// Accepts any commitish: commit SHA, branch name, tag name, HEAD, etc.
     #[must_use]
     pub fn commit2(mut self, commit: &'a str) -> Self {
         self.commit2 = Some(commit);

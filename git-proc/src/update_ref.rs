@@ -36,6 +36,12 @@ impl<'a> UpdateRef<'a> {
     }
 
     /// Set the ref to update.
+    ///
+    /// This is a reference name such as:
+    /// - `HEAD`: The current branch pointer
+    /// - `refs/heads/main`: A branch reference
+    /// - `refs/tags/v1.0`: A tag reference
+    /// - `refs/remotes/origin/main`: A remote tracking branch
     #[must_use]
     pub fn reference(mut self, reference: &'a str) -> Self {
         self.reference = Some(reference);
@@ -43,6 +49,9 @@ impl<'a> UpdateRef<'a> {
     }
 
     /// Set the new value for the ref.
+    ///
+    /// This is typically a commit SHA (40-character hex string) that the
+    /// reference should point to. Can also be another ref name in some contexts.
     #[must_use]
     pub fn newvalue(mut self, newvalue: &'a str) -> Self {
         self.newvalue = Some(newvalue);

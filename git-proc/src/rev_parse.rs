@@ -64,7 +64,19 @@ impl<'a> RevParse<'a> {
 
     /// Resolve `$GIT_DIR/<path>` to a filesystem path.
     ///
+    /// This resolves a path relative to the git directory, taking into account
+    /// git environment variables like `$GIT_OBJECT_DIRECTORY`, `$GIT_INDEX_FILE`, etc.
+    ///
+    /// This is different from `-C` (repo_path):
+    /// - `-C <path>`: Changes to a different working directory before running git
+    /// - `--git-path <path>`: Resolves a path within the git repository's internal structure
+    ///
+    /// Example: `--git-path objects/abc` might return `/foo/bar/abc` if
+    /// `$GIT_OBJECT_DIRECTORY` is set to `/foo/bar`.
+    ///
     /// Corresponds to `--git-path <path>`.
+    ///
+    /// Note: This takes a string path relative to GIT_DIR, not a filesystem Path.
     #[must_use]
     pub fn git_path(mut self, path: &'a str) -> Self {
         self.git_path = Some(path);

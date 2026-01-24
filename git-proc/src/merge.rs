@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::branch::Branch;
 use crate::CommandError;
 
 /// Create a new `git merge` command builder.
@@ -16,7 +17,7 @@ pub struct Merge<'a> {
     repo_path: Option<&'a Path>,
     ff_only: bool,
     quiet: bool,
-    branch: Option<&'a str>,
+    branch: Option<Branch>,
 }
 
 impl<'a> Merge<'a> {
@@ -53,7 +54,7 @@ impl<'a> Merge<'a> {
 
     /// Set the branch to merge.
     #[must_use]
-    pub fn branch(mut self, branch: &'a str) -> Self {
+    pub fn branch(mut self, branch: Branch) -> Self {
         self.branch = Some(branch);
         self
     }
@@ -68,7 +69,7 @@ impl<'a> Merge<'a> {
             .argument("merge")
             .optional_argument(self.ff_only.then_some("--ff-only"))
             .optional_argument(self.quiet.then_some("--quiet"))
-            .optional_argument(self.branch)
+            .optional_argument(self.branch.as_ref())
     }
 }
 
@@ -86,7 +87,7 @@ impl Merge<'_> {
             repo_path: self.repo_path,
             ff_only: self.ff_only,
             quiet: self.quiet,
-            branch: self.branch,
+            branch: self.branch.clone(),
         }
         .build();
         command.test_eq(other);
