@@ -41,8 +41,8 @@ impl RepoName {
         // Extract the last component of the path
         let last_component = path
             .trim_end_matches('/')
-            .rsplit('/')
-            .next()
+            .split('/')
+            .last()
             .ok_or(RepoNameError::Empty)?;
 
         // Remove .git suffix if present
