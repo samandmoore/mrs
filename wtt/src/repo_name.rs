@@ -38,14 +38,12 @@ impl RepoName {
                 .ok_or(RepoNameError::Empty)?,
         };
 
-        // Extract the last component of the path
         let last_component = path
             .trim_end_matches('/')
             .split('/')
-            .last()
+            .next_back()
             .ok_or(RepoNameError::Empty)?;
 
-        // Remove .git suffix if present
         let name = last_component
             .strip_suffix(".git")
             .unwrap_or(last_component);
@@ -54,7 +52,6 @@ impl RepoName {
             return Err(RepoNameError::Empty);
         }
 
-        // Use the existing FromStr parser to validate
         name.parse()
     }
 }
