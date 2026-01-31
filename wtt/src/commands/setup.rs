@@ -47,7 +47,7 @@ impl Setup {
 
         std::fs::create_dir_all(&worktree_base)?;
 
-        log::info!("Setup complete for repository '{}'", repo);
+        log::info!("Setup complete for repository '{repo}'");
 
         Ok(())
     }

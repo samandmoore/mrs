@@ -31,13 +31,11 @@ impl RepoName {
             GitUrl::Ssh(ssh) => ssh.path(),
             GitUrl::Https(https) => https.path(),
             GitUrl::Git(git) => git.path(),
-            GitUrl::Path(path_url) => {
-                path_url
-                    .path()
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .ok_or(RepoNameError::Empty)?
-            }
+            GitUrl::Path(path_url) => path_url
+                .path()
+                .file_name()
+                .and_then(|s| s.to_str())
+                .ok_or(RepoNameError::Empty)?,
         };
 
         // Extract the last component of the path
@@ -48,7 +46,9 @@ impl RepoName {
             .ok_or(RepoNameError::Empty)?;
 
         // Remove .git suffix if present
-        let name = last_component.strip_suffix(".git").unwrap_or(last_component);
+        let name = last_component
+            .strip_suffix(".git")
+            .unwrap_or(last_component);
 
         if name.is_empty() {
             return Err(RepoNameError::Empty);
