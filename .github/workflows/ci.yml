@@ -110,6 +110,17 @@ jobs:
       if: ${{ endsWith(matrix.os.cargo_build_target, '-musl') || endsWith(matrix.os.cargo_build_target, '-darwin') }}
       run: target/${{ matrix.os.cargo_build_target }}/release/manager pg-ephemeral npm build --no-compile
 
+    - name: Set up JDK for Java package build
+      if: ${{ endsWith(matrix.os.cargo_build_target, '-musl') || endsWith(matrix.os.cargo_build_target, '-darwin') }}
+      uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Build pg-ephemeral java package
+      if: ${{ endsWith(matrix.os.cargo_build_target, '-musl') || endsWith(matrix.os.cargo_build_target, '-darwin') }}
+      run: target/${{ matrix.os.cargo_build_target }}/release/manager pg-ephemeral java build --no-compile
+
     - name: Upload build artifacts
       if: ${{ !endsWith(matrix.os.cargo_build_target, '-gnu') }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -213,12 +224,55 @@ jobs:
     - name: Run integration tests with manager
       run: artifacts/pg-ephemeral-${{ matrix.platform.target }}/target/${{ matrix.platform.target }}/release/manager pg-ephemeral npm test
 
+  java-integration-test:
+    strategy:
+      matrix:
+        platform:
+        - runner: ubuntu-24.04
+          target: x86_64-unknown-linux-musl
+        - runner: ubuntu-24.04-arm
+          target: aarch64-unknown-linux-musl
+        - runner: macos-15
+          target: aarch64-apple-darwin
+        java-version:
+        - '17'
+        - '21'
+    name: Java Integration Test (${{ matrix.platform.runner }}, JDK ${{ matrix.java-version }})
+    runs-on: ${{ matrix.platform.runner }}
+    needs: build
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        path: artifacts/
+        merge-multiple: false
+
+    - name: Set up JDK
+      uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.java-version }}
+
+    - name: Make manager executable
+      run: chmod +x artifacts/pg-ephemeral-${{ matrix.platform.target }}/target/${{ matrix.platform.target }}/release/manager
+
+    - name: Merge multi-platform Java JARs
+      run: artifacts/pg-ephemeral-${{ matrix.platform.target }}/target/${{ matrix.platform.target }}/release/manager pg-ephemeral java merge
+
+    - name: Run integration tests with manager
+      run: artifacts/pg-ephemeral-${{ matrix.platform.target }}/target/${{ matrix.platform.target }}/release/manager pg-ephemeral java test
+
   publish:
     name: Publish Edge Build
     needs:
     - build
     - ruby-integration-test
     - npm-integration-test
+    - java-integration-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

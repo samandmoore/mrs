@@ -1,3 +1,4 @@
+pub(crate) mod java;
 pub(crate) mod npm;
 pub(crate) mod ruby;
 
@@ -13,6 +14,11 @@ pub(crate) enum Command {
         #[clap(subcommand)]
         command: npm::Command,
     },
+    /// Java/Gradle package management commands
+    Java {
+        #[clap(subcommand)]
+        command: java::Command,
+    },
     /// Sync all generated files with Rust source of truth
     Sync {
         /// Fail if git is dirty after syncing (for CI verification)
@@ -26,9 +32,11 @@ impl Command {
         match self {
             Self::Ruby { command } => command.run().await,
             Self::Npm { command } => command.run().await,
+            Self::Java { command } => command.run().await,
             Self::Sync { reject_dirty } => {
                 ruby::sync(*reject_dirty).await?;
                 npm::sync(*reject_dirty).await?;
+                java::sync(*reject_dirty).await?;
                 Ok(())
             }
         }
@@ -92,6 +100,19 @@ impl Platform {
             }
             Platform(CpuArchitecture::Aarch64, OperatingSystem::Darwin, Libc::None) => {
                 "arm64-darwin"
+            }
+            _ => panic!("Unsupported platform: {self:?}"),
+        }
+    }
+
+    fn java_classifier(self) -> &'static str {
+        match self {
+            Platform(CpuArchitecture::X86_64, OperatingSystem::Linux, Libc::Musl) => "linux-x86_64",
+            Platform(CpuArchitecture::Aarch64, OperatingSystem::Linux, Libc::Musl) => {
+                "linux-aarch_64"
+            }
+            Platform(CpuArchitecture::Aarch64, OperatingSystem::Darwin, Libc::None) => {
+                "osx-aarch_64"
             }
             _ => panic!("Unsupported platform: {self:?}"),
         }

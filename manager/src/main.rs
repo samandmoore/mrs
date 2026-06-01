@@ -190,6 +190,15 @@ async fn create_edge_release() {
         release_files.push(pg_ephemeral::verify_and_collect_file(
             npm_paths.platform_tarball_sha256,
         ));
+
+        let java_paths = pg_ephemeral::java::platform_artifact_paths(&workspace_root, *platform);
+
+        release_files.push(pg_ephemeral::verify_and_collect_file(
+            java_paths.platform_jar,
+        ));
+        release_files.push(pg_ephemeral::verify_and_collect_file(
+            java_paths.platform_jar_sha256,
+        ));
     }
 
     // npm main tarball is platform-independent, collect once from first platform
@@ -200,6 +209,18 @@ async fn create_edge_release() {
     ));
     release_files.push(pg_ephemeral::verify_and_collect_file(
         npm_main_paths.main_tarball_sha256,
+    ));
+
+    // Java main JAR is platform-independent, collect once from first platform
+    let java_main_paths = pg_ephemeral::java::platform_artifact_paths(
+        &workspace_root,
+        pg_ephemeral::Platform::ALL[0],
+    );
+    release_files.push(pg_ephemeral::verify_and_collect_file(
+        java_main_paths.main_jar,
+    ));
+    release_files.push(pg_ephemeral::verify_and_collect_file(
+        java_main_paths.main_jar_sha256,
     ));
 
     log::info!(
